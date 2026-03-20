@@ -133,4 +133,97 @@ Only return the JSON. No other text.`
       return null;
     }
   }
+
+  public async searchHistory(file: string, query: string): Promise<{sha: string, message: string, date: string, relevance: number}[]> {
+    const history = await this.gitService.getFullFileHistory(file);
+    if (history.length === 0 || !this.client) return [];
+
+    // Sample history if too large for prompt
+    const sampledHistory = history.slice(0, 50); 
+    const historyText = sampledHistory.map(h => `[${h.sha.substring(0, 7)}] ${h.date}: ${h.message}`).join('\n');
+
+    const prompt = `QUERY: "${query}"
+
+COMMIT HISTORY:
+${historyText}
+
+Based on the query, rank the most relevant commits from the history above.
+Return a JSON array of objects, each containing:
+{
+  "sha": "full 40-char sha",
+  "relevance": 0.0-1.0,
+  "reason": "Brief explanation of why this commit is relevant to the query."
+}
+Only return the top 10 most relevant commits. Return ONLY the JSON array.`;
+
+    try {
+      const response = await this.client.chat.completions.create({
+        model: this.model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0,
+      });
+
+      const result = response.choices[0]?.message?.content ?? '';
+      const jsonPayload = result.match(/\[[\s\S]*\]/)?.[0] ?? '';
+      if (!jsonPayload) return [];
+      
+      const rankings = JSON.parse(jsonPayload) as {sha: string, relevance: number, reason: string}[];
+      
+      return rankings.map(r => {
+        const original = history.find(h => h.sha === r.sha);
+        return {
+          sha: r.sha,
+          message: original?.message || 'Unknown',
+          date: original?.date || 'Unknown',
+          relevance: r.relevance
+        };
+      }).sort((a, b) => b.relevance - a.relevance);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  public async getSemanticAuthorImpact(file: string): Promise<any[]> {
+    const stats = await this.gitService.getAuthorStats(file);
+    if (Object.keys(stats).length === 0 || !this.client) return [];
+
+    const authorsData = Object.entries(stats).map(([name, data]) => {
+      return `AUTHOR: ${name}\nCOMMITS: ${data.commits}\nLINES: +${data.added}/-${data.removed}`;
+    }).join('\n\n');
+
+    const prompt = `Analyze the contribution of these authors to the file "${file}".
+Based on their commit counts and line changes, provide a "Semantic Impact Score" (0-100) and a one-sentence "Contribution Persona" (e.g., "The Architect", "The Bug Fixer", "The Refactorer").
+
+AUTHORS:
+${authorsData}
+
+Return a JSON array of objects:
+{
+  "name": "Author Name",
+  "impactScore": 0-100,
+  "persona": "Short title",
+  "summary": "One sentence summary of their impact."
+}
+Return ONLY the JSON array.`;
+
+    try {
+      const response = await this.client.chat.completions.create({
+        model: this.model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0,
+      });
+
+      const result = response.choices[0]?.message?.content ?? '';
+      const jsonPayload = result.match(/\[[\s\S]*\]/)?.[0] ?? '';
+      if (!jsonPayload) return [];
+      
+      const impacts = JSON.parse(jsonPayload);
+      return impacts.map((imp: any) => ({
+        ...imp,
+        ...stats[imp.name]
+      })).sort((a: any, b: any) => b.impactScore - a.impactScore);
+    } catch (error) {
+      return [];
+    }
+  }
 }

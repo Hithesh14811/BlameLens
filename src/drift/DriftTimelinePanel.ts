@@ -78,24 +78,6 @@ export class DriftTimelinePanel {
     this._panel.webview.postMessage({ type: 'addPoint', data: point });
   }
 
-  private _getLoadingHtml() {
-    return `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          body { font-family: system-ui; color: var(--vscode-editor-foreground); background: var(--vscode-editor-background); padding: 20px; }
-          .loading { display: flex; align-items: center; justify-content: center; height: 100vh; font-style: italic; opacity: 0.7; }
-        </style>
-      </head>
-      <body>
-        <div class="loading">Analyzing history and building drift timeline...</div>
-      </body>
-      </html>
-    `;
-  }
-
   public dispose() {
     DriftTimelinePanel.currentPanel = undefined;
     this._panel.dispose();

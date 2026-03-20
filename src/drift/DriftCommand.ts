@@ -10,11 +10,6 @@ export class DriftCommand {
   private embeddingService: EmbeddingService;
   private driftAnalyzer: DriftAnalyzer;
 
-  /**
-   * Creates an instance of DriftCommand.
-   * @param context The extension context.
-   * @param semanticBlameService The semantic blame service.
-   */
   constructor(
     private context: vscode.ExtensionContext,
     private semanticBlameService: SemanticBlameService

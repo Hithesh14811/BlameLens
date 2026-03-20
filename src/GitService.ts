@@ -97,4 +97,57 @@ export class GitService {
       return 'No history available.';
     }
   }
+
+  public async getFullFileHistory(file: string): Promise<{sha: string, message: string, date: string}[]> {
+    const cwd = this.getCwd();
+    if (!cwd) return [];
+
+    try {
+      const command = `git log --follow --format="%H|%s|%ai" -- "${file}"`;
+      const { stdout } = await execAsync(command, { cwd });
+      return stdout.split('\n').filter(l => l.trim()).map(line => {
+        const [sha, message, date] = line.split('|');
+        return { sha, message, date };
+      });
+    } catch (error) {
+      return [];
+    }
+  }
+
+  public async getAuthorStats(file: string): Promise<Record<string, { commits: number, added: number, removed: number }>> {
+    const cwd = this.getCwd();
+    if (!cwd) return {};
+
+    try {
+      // Get all commits for the file with author and stats
+      const command = `git log --follow --format="%an" --numstat -- "${file}"`;
+      const { stdout } = await execAsync(command, { cwd });
+      const stats: Record<string, { commits: number, added: number, removed: number }> = {};
+      
+      const lines = stdout.split('\n');
+      let currentAuthor = '';
+      
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        if (line.match(/^\d+\s+\d+\s+/)) {
+          // This is a stat line (added removed file)
+          const [added, removed] = line.split(/\s+/);
+          if (currentAuthor) {
+            stats[currentAuthor].added += parseInt(added) || 0;
+            stats[currentAuthor].removed += parseInt(removed) || 0;
+          }
+        } else {
+          // This is an author line
+          currentAuthor = line.trim();
+          if (!stats[currentAuthor]) {
+            stats[currentAuthor] = { commits: 0, added: 0, removed: 0 };
+          }
+          stats[currentAuthor].commits++;
+        }
+      }
+      return stats;
+    } catch (error) {
+      return {};
+    }
+  }
 }
