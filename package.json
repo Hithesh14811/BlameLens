@@ -1,0 +1,155 @@
+{
+  "name": "blamelens",
+  "displayName": "BlameLens",
+  "description": "Understand the story behind your code. BlameLens provides AI-powered insights into your Git history.",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.84.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:*",
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "BlameLens",
+      "properties": {
+        "blameLens.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key used to call the model provider."
+        },
+        "blameLens.baseUrl": {
+          "type": "string",
+          "default": "https://integrate.api.nvidia.com/v1",
+          "description": "Base URL for the OpenAI-compatible provider endpoint."
+        },
+        "blameLens.model": {
+          "type": "string",
+          "default": "minimaxai/minimax-m2.5",
+          "enum": [
+            "minimaxai/minimax-m2.5"
+          ],
+          "description": "The model to use for semantic analysis."
+        },
+        "blameLens.enableCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable CodeLens annotations."
+        },
+        "blameLens.enableGhostText": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable semantic ghost text at the end of the line."
+        },
+        "blameLens.customInstructions": {
+          "type": "string",
+          "default": "",
+          "description": "Additional instructions for the AI (e.g., 'Focus on security implications' or 'Ignore refactoring commits')."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "blameLens-explorer",
+          "title": "BlameLens",
+          "icon": "resources/blamelens.svg"
+        }
+      ]
+    },
+    "views": {
+      "blameLens-explorer": [
+        {
+          "type": "webview",
+          "id": "blameLensHistory",
+          "name": "Line Evolution Story"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "blameLens.setApiKey",
+        "title": "BlameLens: Set API Key"
+      },
+      {
+        "command": "blameLens.openSettings",
+        "title": "BlameLens: Open Settings"
+      },
+      {
+        "command": "blameLens.noop",
+        "title": "BlameLens: Noop"
+      },
+      {
+        "command": "blameLens.showDriftTimeline",
+        "title": "Show Drift Timeline",
+        "category": "BlameLens"
+      }
+    ],
+    "walkthroughs": [
+      {
+        "id": "blameLens.welcome",
+        "title": "Get Started with BlameLens",
+        "description": "Learn how to set up and use AI-powered git blame annotations.",
+        "steps": [
+          {
+            "id": "setupApiKey",
+            "title": "Set your API Key",
+            "description": "To use BlameLens, you need an API key from an OpenAI-compatible provider (like NVIDIA or OpenAI).\n[Set API Key](command:blameLens.setApiKey)",
+            "media": {
+              "svg": "resources/blamelens.svg",
+              "altText": "BlameLens Icon"
+            }
+          },
+          {
+            "id": "configureModel",
+            "title": "Configure Model & Base URL",
+            "description": "By default, the extension uses NVIDIA's endpoint and the Minimax-m2.5 model. You can change these in settings.\n[Open Settings](command:blameLens.openSettings)",
+            "media": {
+              "svg": "resources/blamelens.svg",
+              "altText": "BlameLens Icon"
+            }
+          },
+          {
+            "id": "usingBlame",
+            "title": "See it in action",
+            "description": "Hover over any line of code or check the ghost text at the end of your active line to see the 'Why' behind the code. Open the 'BlameLens' view in the Activity Bar for a full history story.",
+            "media": {
+              "svg": "resources/blamelens.svg",
+              "altText": "BlameLens Icon"
+            }
+          }
+        ]
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "blameLens.showDriftTimeline",
+          "when": "editorHasSelection || editorTextFocus",
+          "group": "blameLens@1"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run esbuild-base -- --minify",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "esbuild": "npm run esbuild-base -- --sourcemap",
+    "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
+    "test-compile": "tsc -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "18.x",
+    "@types/vscode": "^1.84.0",
+    "esbuild": "^0.19.5",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "openai": "^4.104.0"
+  }
+}
