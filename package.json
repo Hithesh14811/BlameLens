@@ -3,6 +3,8 @@
   "displayName": "BlameLens",
   "description": "Understand the story behind your code. BlameLens provides AI-powered insights into your Git history.",
   "version": "0.1.0",
+  "publisher": "hithesh-BlameLens",
+  "icon": "resources/logo.png",
   "engines": {
     "vscode": "^1.84.0"
   },
@@ -58,7 +60,7 @@
         {
           "id": "blameLens-explorer",
           "title": "BlameLens",
-          "icon": "resources/blamelens.svg"
+          "icon": "resources/logo.png"
         }
       ]
     },
