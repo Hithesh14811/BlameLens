@@ -126,9 +126,10 @@ Only return the JSON. No other text.`
       if (!jsonPayload) {
         return null;
       }
-      const annotation = JSON.parse(jsonPayload) as SemanticAnnotation;
-      this.cache.set(cacheKey, annotation);
-      return annotation;
+      const annotation = JSON.parse(jsonPayload) as Omit<SemanticAnnotation, 'author'>;
+      const finalAnnotation = { ...annotation, author: commitContext.author };
+      this.cache.set(cacheKey, finalAnnotation);
+      return finalAnnotation;
     } catch (error) {
       return null;
     }
@@ -224,6 +225,27 @@ Return ONLY the JSON array.`;
       })).sort((a: any, b: any) => b.impactScore - a.impactScore);
     } catch (error) {
       return [];
+    }
+  }
+
+  public async summarizeCommit(sha: string): Promise<string | null> {
+    if (!this.client) return null;
+
+    const commitContext = await this.gitService.getCommitContext(sha);
+    if (!commitContext) return 'Could not find commit.';
+
+    const prompt = `Provide a human-readable summary of the following commit. Focus on the high-level changes and the overall intent. Use markdown for formatting.\n\nCOMMIT: ${commitContext.sha}\nAUTHOR: ${commitContext.author}\nDATE: ${commitContext.date}\nMESSAGE: "${commitContext.message}"\n\nDIFF:\n${commitContext.diff}`;
+
+    try {
+      const response = await this.client.chat.completions.create({
+        model: this.model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.2,
+      });
+
+      return response.choices[0]?.message?.content ?? 'No summary available.';
+    } catch (error) {
+      return 'Failed to generate summary.';
     }
   }
 }

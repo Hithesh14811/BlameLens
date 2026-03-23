@@ -6,6 +6,7 @@ import { GhostBlameProvider } from './GhostBlameProvider';
 import { SemanticHistoryProvider } from './SemanticHistoryProvider';
 import { GitService } from './GitService';
 import { DriftCommand } from './drift/DriftCommand';
+import { CommitSummaryPanel } from './CommitSummaryPanel';
 
 export function activate(context: vscode.ExtensionContext) {
   const config = vscode.workspace.getConfiguration('blameLens');
@@ -70,6 +71,21 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.window.showInformationMessage('BlameLens API key updated.');
     }
   });
+  const summarizeCommitCommand = vscode.commands.registerCommand('blameLens.summarizeCommit', async () => {
+    const sha = await vscode.window.showInputBox({ prompt: 'Enter a commit SHA to summarize' });
+    if (sha) {
+      await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: `Summarizing commit ${sha.substring(0, 7)}...`,
+        cancellable: false
+      }, async () => {
+        const summary = await semanticBlameService.summarizeCommit(sha);
+        if (summary) {
+          CommitSummaryPanel.createOrShow(context.extensionUri, sha, summary);
+        }
+      });
+    }
+  });
   const noopCommand = vscode.commands.registerCommand('blameLens.noop', () => {});
 
   if (!apiKey) {
@@ -96,7 +112,9 @@ export function activate(context: vscode.ExtensionContext) {
         const annotation = await semanticBlameService.getSemanticBlame(document.fileName, position.line);
         if (annotation) {
           const markdown = new vscode.MarkdownString();
+          markdown.isTrusted = true;
           markdown.appendMarkdown(`**${annotation.one_liner}**\n\n`);
+          markdown.appendMarkdown(`*By: ${annotation.author}*\n\n`);
           markdown.appendMarkdown(`${annotation.intent}\n\n`);
           markdown.appendMarkdown(`*Trigger: ${annotation.trigger}*\n\n`);
           if (annotation.risk) {
@@ -122,6 +140,7 @@ export function activate(context: vscode.ExtensionContext) {
     sidePanelView,
     openSettingsCommand,
     setApiKeyCommand,
+    summarizeCommitCommand,
     noopCommand,
     vscode.workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('blameLens')) {

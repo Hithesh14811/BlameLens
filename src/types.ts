@@ -19,4 +19,5 @@ export interface SemanticAnnotation {
   trigger: string;
   risk: string | null;
   confidence: number;
+  author: string;
 }

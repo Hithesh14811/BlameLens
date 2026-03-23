@@ -88,6 +88,11 @@
         "command": "blameLens.showDriftTimeline",
         "title": "Show Drift Timeline",
         "category": "BlameLens"
+      },
+      {
+        "command": "blameLens.summarizeCommit",
+        "title": "Summarize Commit with AI",
+        "category": "BlameLens"
       }
     ],
     "walkthroughs": [
